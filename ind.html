@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>نظام تقييم الفرع</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Tahoma, Arial, sans-serif;
+      background: #f4f6f8;
+      color: #17202a;
+    }
+    .container { max-width: 980px; margin: 0 auto; padding: 24px 16px 50px; }
+    .header {
+      background: linear-gradient(135deg, #173b67, #2563a6);
+      color: white;
+      padding: 28px;
+      border-radius: 18px;
+      margin-bottom: 18px;
+      box-shadow: 0 8px 24px rgba(23,59,103,.15);
+    }
+    .header h1 { margin: 0 0 8px; font-size: 28px; }
+    .header p { margin: 0; opacity: .9; }
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 22px;
+      margin-bottom: 16px;
+      box-shadow: 0 3px 14px rgba(0,0,0,.06);
+    }
+    .card h2 {
+      margin: 0 0 18px;
+      font-size: 20px;
+      color: #173b67;
+      border-right: 4px solid #2563a6;
+      padding-right: 10px;
+    }
+    .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+    label { display: block; font-weight: bold; margin-bottom: 7px; }
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid #d5dbe1;
+      border-radius: 9px;
+      padding: 11px 12px;
+      font: inherit;
+      background: #fff;
+      outline: none;
+    }
+    input:focus, select:focus, textarea:focus { border-color: #2563a6; }
+    textarea { min-height: 90px; resize: vertical; }
+    .full { grid-column: 1 / -1; }
+    .rating-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid #edf0f2;
+    }
+    .rating-row:last-child { border-bottom: 0; }
+    .stars { display: flex; direction: ltr; gap: 4px; }
+    .star {
+      border: 0;
+      background: transparent;
+      font-size: 28px;
+      color: #c8cdd3;
+      cursor: pointer;
+      padding: 0 2px;
+    }
+    .star.active { color: #f5b400; }
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    .status {
+      border: 1px solid #d9dfe5;
+      border-radius: 10px;
+      padding: 12px;
+      text-align: center;
+      cursor: pointer;
+      background: #fff;
+      font-weight: bold;
+    }
+    .status input { display: none; }
+    .status.selected { border-color: #2563a6; background: #eef6ff; }
+    .status.good.selected { border-color: #16a34a; background: #ecfdf3; }
+    .status.warn.selected { border-color: #d97706; background: #fff7ed; }
+    .status.bad.selected { border-color: #dc2626; background: #fef2f2; }
+    .item-row {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 2fr auto;
+      gap: 8px;
+      margin-bottom: 9px;
+      align-items: center;
+    }
+    .remove {
+      border: 0;
+      background: #fee2e2;
+      color: #b91c1c;
+      border-radius: 8px;
+      padding: 10px 12px;
+      cursor: pointer;
+    }
+    .add {
+      border: 1px dashed #2563a6;
+      background: #eef6ff;
+      color: #173b67;
+      padding: 10px 15px;
+      border-radius: 9px;
+      cursor: pointer;
+      font: inherit;
+      font-weight: bold;
+    }
+    .summary {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #eef6ff;
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 16px;
+    }
+    .score { font-size: 30px; font-weight: bold; color: #173b67; }
+    .actions { display: flex; gap: 10px; margin-top: 18px; }
+    .btn {
+      flex: 1;
+      border: 0;
+      border-radius: 11px;
+      padding: 14px;
+      font: inherit;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .btn-primary { background: #173b67; color: white; }
+    .btn-secondary { background: #e9edf1; color: #263746; }
+    .note { color: #687581; font-size: 13px; margin-top: 7px; }
+    .success {
+      display: none;
+      background: #ecfdf3;
+      color: #166534;
+      border: 1px solid #bbf7d0;
+      padding: 13px;
+      border-radius: 10px;
+      margin-top: 14px;
+      font-weight: bold;
+    }
+    .error-msg {
+      display: none;
+      background: #fef2f2;
+      color: #b91c1c;
+      border: 1px solid #fecaca;
+      padding: 13px;
+      border-radius: 10px;
+      margin-top: 14px;
+      font-weight: bold;
+    }
+    .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+    .tab {
+      flex: 1;
+      border: 1px solid #d5dbe1;
+      background: #fff;
+      color: #173b67;
+      padding: 11px;
+      border-radius: 11px;
+      font: inherit;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .tab.active { background: #173b67; color: #fff; border-color: #173b67; }
+    .btn-telegram { background: #229ED9; color: #fff; }
+    .btn-full { width: 100%; }
+    .dash-toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+    .dash-toolbar select, .dash-toolbar input { flex: 1; min-width: 160px; }
+    .dash-stats { display: flex; gap: 14px; flex-wrap: wrap; }
+    .dash-stat { flex: 1; min-width: 120px; text-align: center; background: #eef6ff; border-radius: 12px; padding: 14px; }
+    .dash-stat-value { font-size: 24px; font-weight: bold; color: #173b67; }
+    .dash-stat-label { font-size: 12px; color: #687581; margin-top: 4px; }
+    .badge { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; padding: 4px 10px; border-radius: 20px; font-weight: bold; }
+    .edit-list-link {
+      background: none;
+      border: none;
+      color: #2563a6;
+      font: inherit;
+      font-size: 12.5px;
+      font-weight: bold;
+      cursor: pointer;
+      padding: 0;
+    }
+    .directorate-editor {
+      margin-top: 12px;
+      padding: 14px;
+      background: #f7f9fb;
+      border: 1px solid #e1e6eb;
+      border-radius: 10px;
+    }
+    .directorate-editor-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    @media (max-width: 700px) {
+      .directorate-editor-row { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 700px) {
+      .grid, .status-grid { grid-template-columns: 1fr; }
+      .item-row { grid-template-columns: 1fr 1fr; }
+      .item-row input:nth-child(1), .item-row input:nth-child(4) { grid-column: 1 / -1; }
+      .remove { grid-column: 1 / -1; }
+      .rating-row { align-items: flex-start; flex-direction: column; }
+      .actions { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <header class="header">
+    <h1>نظام تقييم الفرع</h1>
+    <p>تقييم أعمال الصيانة والتركيب وحالة الأنظمة التقنية في الفرع</p>
+  </header>
+
+  <div class="tabs">
+    <button type="button" id="tabFormBtn" class="tab active" onclick="showView('form')">📝 تعبئة تقييم</button>
+    <button type="button" id="tabDashboardBtn" class="tab" onclick="showView('dashboard')">📊 لوحة مدير الشركة</button>
+  </div>
+
+  <div id="formView">
+  <form id="evaluationForm">
+
+    <section class="card">
+      <h2>بيانات الزيارة</h2>
+      <div class="grid">
+        <div class="full">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:7px;">
+            <label for="directorate" style="margin:0;">مديرية التجنيد *</label>
+            <button type="button" class="edit-list-link" onclick="toggleDirectorateEditor()">✏️ تعديل القائمة</button>
+          </div>
+          <select id="directorate" name="directorate" required>
+            <option value="" disabled selected>اختر مديرية التجنيد</option>
+          </select>
+
+          <div id="directorateEditor" class="directorate-editor" style="display:none">
+            <p class="note" style="margin-top:0">عدّل اسم كل مديرية واسم مديرها ثم اضغط حفظ. التعديل يظهر لكل من يستخدم النظام.</p>
+            <div id="directorateEditorList"></div>
+            <div style="display:flex; gap:8px; margin-top:10px;">
+              <button type="button" class="add" onclick="saveDirectorates()">💾 حفظ القائمة</button>
+              <button type="button" class="btn-secondary" style="border-radius:9px; border:0; padding:10px 15px; cursor:pointer; font:inherit; font-weight:bold;" onclick="toggleDirectorateEditor()">إغلاق</button>
+            </div>
+          </div>
+        </div>
+        <div>
+          <label for="date">تاريخ الزيارة *</label>
+          <input id="date" name="date" type="date" required>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>1. تقييم فريق الصيانة والتركيب</h2>
+
+      <div class="rating-row">
+        <span>الالتزام بالوقت والحضور</span>
+        <div class="stars" data-rating="attendance"></div>
+      </div>
+      <div class="rating-row">
+        <span>جودة العمل</span>
+        <div class="stars" data-rating="quality"></div>
+      </div>
+      <div class="rating-row">
+        <span>سرعة إنجاز العمل</span>
+        <div class="stars" data-rating="speed"></div>
+      </div>
+      <div class="rating-row">
+        <span>التعامل مع موظفي الفرع</span>
+        <div class="stars" data-rating="behavior"></div>
+      </div>
+
+      <div style="margin-top:16px">
+        <label for="teamNotes">ملاحظات على الفريق</label>
+        <textarea id="teamNotes" name="teamNotes" placeholder="اكتب أي ملاحظات..."></textarea>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>2. تقييم الشبكة</h2>
+      <label>حالة الشبكة</label>
+      <div class="status-grid" data-group="network">
+        <label class="status good"><input type="radio" name="network" value="جيدة">🟢 جيدة</label>
+        <label class="status warn"><input type="radio" name="network" value="تحتاج متابعة">🟠 تحتاج متابعة</label>
+        <label class="status bad"><input type="radio" name="network" value="عطل">🔴 عطل</label>
+      </div>
+      <div class="grid" style="margin-top:15px">
+        <div class="full">
+          <label for="networkProblem">وصف المشكلة</label>
+          <textarea id="networkProblem" name="networkProblem" placeholder="وصف أعطال الشبكة إن وجدت"></textarea>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>3. تقييم الأجهزة</h2>
+      <label>الحالة العامة للأجهزة</label>
+      <div class="status-grid" data-group="devices">
+        <label class="status good"><input type="radio" name="devices" value="جيدة">🟢 جيدة</label>
+        <label class="status warn"><input type="radio" name="devices" value="تحتاج صيانة">🟠 تحتاج صيانة</label>
+        <label class="status bad"><input type="radio" name="devices" value="تحتاج استبدال">🔴 تحتاج استبدال</label>
+      </div>
+      <div style="margin-top:15px">
+        <label for="deviceNotes">الأجهزة التي تحتاج صيانة أو استبدال</label>
+        <textarea id="deviceNotes" name="deviceNotes" placeholder="اذكر اسم الجهاز وحالته..."></textarea>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>4. تقييم الإنترنت</h2>
+      <label>حالة الإنترنت</label>
+      <div class="status-grid" data-group="internet">
+        <label class="status good"><input type="radio" name="internet" value="مستقر">🟢 مستقر</label>
+        <label class="status warn"><input type="radio" name="internet" value="متقطع">🟠 متقطع</label>
+        <label class="status bad"><input type="radio" name="internet" value="متوقف">🔴 متوقف</label>
+      </div>
+      <div class="grid" style="margin-top:15px">
+        <div>
+          <label for="internetSpeed">سرعة الإنترنت (Mbps) — اختياري</label>
+          <input id="internetSpeed" name="internetSpeed" type="number" min="0" step="0.1" placeholder="مثال: 100">
+        </div>
+        <div>
+          <label for="provider">مزود الخدمة</label>
+          <input id="provider" name="provider" placeholder="اسم مزود الخدمة">
+        </div>
+        <div class="full">
+          <label for="internetNotes">ملاحظات الإنترنت</label>
+          <textarea id="internetNotes" name="internetNotes" placeholder="اكتب المشكلة أو الملاحظات..."></textarea>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>5. النواقص التقنية</h2>
+      <p class="note">أضف الأجهزة أو المعدات المطلوبة للفرع.</p>
+      <div id="shortages"></div>
+      <button type="button" class="add" onclick="addShortage()">+ إضافة نقص تقني</button>
+    </section>
+
+    <section class="card">
+      <h2>النتيجة</h2>
+      <div class="summary">
+        <div>
+          <strong>التقييم الإجمالي للفريق</strong>
+          <div class="note">يتم حسابه تلقائيًا من تقييم النجوم.</div>
+        </div>
+        <div class="score"><span id="totalScore">0</span> / 100</div>
+      </div>
+
+      <div class="actions">
+        <button type="button" class="btn btn-secondary" onclick="saveDraft()">💾 حفظ مسودة</button>
+        <button type="button" class="btn btn-primary" onclick="submitToManager()">📤 إرسال إلى مدير الشركة</button>
+      </div>
+      <div class="actions" style="margin-top:10px">
+        <button type="button" class="btn btn-telegram btn-full" onclick="shareReport()">🖼️ مشاركة كصورة عبر Telegram (اختياري)</button>
+      </div>
+
+      <div id="successMessage" class="success"></div>
+      <div id="errorMessage" class="error-msg"></div>
+    </section>
+
+  </form>
+  </div>
+
+  <div id="dashboardView" style="display:none">
+    <section class="card">
+      <h2>لوحة تقييمات المديريات</h2>
+      <div class="dash-toolbar">
+        <select id="filterBranch" onchange="renderDashboard()">
+          <option value="">كل المديريات</option>
+        </select>
+        <input id="searchTeam" placeholder="بحث في الملاحظات..." oninput="renderDashboard()">
+      </div>
+      <div class="dash-stats" id="dashStats"></div>
+    </section>
+    <div id="dashList"></div>
+  </div>
+
+</div>
+
+<script>
+  // ===== تخزين محلي في متصفح الجهاز (localStorage) =====
+  // ملاحظة: هذا التخزين محلي على هذا الجهاز/المتصفح فقط، ولا يُشارك تلقائيًا
+  // مع أجهزة أخرى. لإرسال البيانات فعليًا لمدير الشركة استخدم زر "تصدير"
+  // في لوحة مدير الشركة، أو خيار المشاركة عبر Telegram.
+  function lsGet(key) {
+    try {
+      const raw = localStorage.getItem(key);
+      if (raw === null) return null;
+      return { key, value: raw, shared: false };
+    } catch (e) {
+      console.error("localStorage get error:", e);
+      return null;
+    }
+  }
+
+  function lsSet(key, value) {
+    try {
+      localStorage.setItem(key, value);
+      return { key, value, shared: false };
+    } catch (e) {
+      console.error("localStorage set error:", e);
+      return null;
+    }
+  }
+
+  // تاريخ اليوم
+  document.getElementById("date").valueAsDate = new Date();
+
+  // تقييم النجوم
+  const ratings = {};
+  document.querySelectorAll(".stars").forEach(box => {
+    const key = box.dataset.rating;
+    ratings[key] = 0;
+    for (let i = 1; i <= 5; i++) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "star";
+      btn.textContent = "★";
+      btn.title = i + " من 5";
+      btn.onclick = () => {
+        ratings[key] = i;
+        [...box.children].forEach((s, index) => {
+          s.classList.toggle("active", index < i);
+        });
+        calculateScore();
+      };
+      box.appendChild(btn);
+    }
+  });
+
+  function calculateScore() {
+    const values = Object.values(ratings);
+    const total = values.reduce((a,b) => a + b, 0);
+    const score = Math.round((total / (values.length * 5)) * 100);
+    document.getElementById("totalScore").textContent = score;
+    return score;
+  }
+
+  // حالات الاختيار
+  document.querySelectorAll(".status-grid").forEach(group => {
+    group.querySelectorAll(".status").forEach(label => {
+      const input = label.querySelector("input");
+      input.addEventListener("change", () => {
+        group.querySelectorAll(".status").forEach(x => x.classList.remove("selected"));
+        if (input.checked) label.classList.add("selected");
+      });
+    });
+  });
+
+  // النواقص التقنية
+  let shortageId = 0;
+
+  function addShortage(data = {}) {
+    shortageId++;
+    const row = document.createElement("div");
+    row.className = "item-row";
+    row.innerHTML = `
+      <input type="text" placeholder="الجهاز / المعدة" value="${escapeHtml(data.item || "")}">
+      <input type="number" min="1" placeholder="الكمية" value="${data.qty || 1}">
+      <select>
+        <option ${data.priority === "منخفض" ? "selected" : ""}>منخفض</option>
+        <option ${data.priority === "متوسط" ? "selected" : ""}>متوسط</option>
+        <option ${data.priority === "عاجل" ? "selected" : ""}>عاجل</option>
+      </select>
+      <input type="text" placeholder="سبب الطلب / ملاحظات" value="${escapeHtml(data.note || "")}">
+      <button type="button" class="remove" onclick="this.parentElement.remove()">حذف</button>
+    `;
+    document.getElementById("shortages").appendChild(row);
+  }
+
+  function getShortages() {
+    return [...document.querySelectorAll("#shortages .item-row")].map(row => ({
+      item: row.children[0].value,
+      qty: row.children[1].value,
+      priority: row.children[2].value,
+      note: row.children[3].value
+    }));
+  }
+
+  function getFormData() {
+    const form = document.getElementById("evaluationForm");
+    const fd = new FormData(form);
+    const data = Object.fromEntries(fd.entries());
+    data.ratings = {...ratings};
+    data.score = calculateScore();
+    data.shortages = getShortages();
+    data.createdAt = new Date().toISOString();
+    return data;
+  }
+
+  function saveDraft() {
+    const data = getFormData();
+    localStorage.setItem("branchEvaluationDraft", JSON.stringify(data));
+    showMessage("تم حفظ المسودة على هذا الجهاز بنجاح.", false);
+  }
+
+  function loadDraft() {
+    const raw = localStorage.getItem("branchEvaluationDraft");
+    if (!raw) return;
+    try {
+      const data = JSON.parse(raw);
+
+      Object.entries(data).forEach(([key, value]) => {
+        if (key === "ratings" || key === "shortages" || key === "score" || key === "createdAt") return;
+        const el = document.querySelector(`[name="${key}"]`);
+        if (!el) return;
+        if (el.type === "radio") {
+          const radio = document.querySelector(`[name="${key}"][value="${CSS.escape(value)}"]`);
+          if (radio) {
+            radio.checked = true;
+            radio.closest(".status").classList.add("selected");
+          }
+        } else {
+          el.value = value;
+        }
+      });
+
+      if (data.ratings) {
+        Object.entries(data.ratings).forEach(([key, value]) => {
+          ratings[key] = value;
+          const box = document.querySelector(`.stars[data-rating="${key}"]`);
+          if (box) [...box.children].forEach((s, i) => s.classList.toggle("active", i < value));
+        });
+      }
+
+      (data.shortages || []).forEach(addShortage);
+      calculateScore();
+    } catch (e) {
+      console.log("تعذر تحميل المسودة");
+    }
+  }
+
+  async function shareReport() {
+    const form = document.getElementById("evaluationForm");
+    if (!form.reportValidity()) return;
+
+    const btn = document.querySelector(".btn-telegram");
+    const originalText = btn.textContent;
+
+    try {
+      btn.disabled = true;
+      btn.textContent = "⏳ جارِ إرسال الصورة...";
+
+      const data = getFormData();
+      const imageBlob = await createReportImage(data);
+
+      const formData = new FormData();
+      formData.append(
+        "photo",
+        imageBlob,
+        `تقييم-${safeFileName(data.directorate)}.png`
+      );
+
+      const response = await fetch("api/send-telegram.php", {
+        method: "POST",
+        body: formData
+      });
+
+      const responseText = await response.text();
+      let result;
+
+      try {
+        result = JSON.parse(responseText);
+      } catch (e) {
+        console.error("Server raw response:", responseText);
+        throw new Error(
+          "الخادم لم يُرجع JSON. كود HTTP: " + response.status +
+          (responseText ? " — " + responseText.substring(0, 500) : "")
+        );
+      }
+
+      if (!response.ok || !result.success) {
+        throw new Error(
+          result.message ||
+          ("تعذر إرسال الصورة إلى Telegram. كود HTTP: " + response.status)
+        );
+      }
+
+      showMessage("✅ تم إرسال صورة التقرير مباشرة إلى Telegram.");
+    } catch (error) {
+      console.error("shareReport error:", error);
+      showError("⚠️ " + (error.message || "حدث خطأ أثناء إرسال الصورة."));
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
+  }
+
+  function safeFileName(name) {
+    return String(name || "الفرع").replace(/[\\/:*?"<>|]/g, "-").trim();
+  }
+
+  function downloadBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function roundedRect(ctx, x, y, w, h, r) {
+    const radius = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.arcTo(x + w, y, x + w, y + h, radius);
+    ctx.arcTo(x + w, y + h, x, y + h, radius);
+    ctx.arcTo(x, y + h, x, y, radius);
+    ctx.arcTo(x, y, x + w, y, radius);
+    ctx.closePath();
+  }
+
+  function drawRtlText(ctx, text, x, y, maxWidth, font, color, align = "right") {
+    ctx.font = font;
+    ctx.fillStyle = color;
+    ctx.textAlign = align;
+    ctx.direction = "rtl";
+
+    const words = String(text || "").split(" ");
+    let line = "";
+    const lines = [];
+
+    for (const word of words) {
+      const test = line ? line + " " + word : word;
+      if (ctx.measureText(test).width > maxWidth && line) {
+        lines.push(line);
+        line = word;
+      } else {
+        line = test;
+      }
+    }
+    if (line) lines.push(line);
+
+    lines.forEach((l, i) => ctx.fillText(l, x, y + i * 30));
+    return lines.length * 30;
+  }
+
+  async function createReportImage(data) {
+    const canvas = document.createElement("canvas");
+    const scale = 2;
+    const width = 1200;
+    const height = 1700;
+    canvas.width = width * scale;
+    canvas.height = height * scale;
+
+    const ctx = canvas.getContext("2d");
+    ctx.scale(scale, scale);
+
+    // خلفية
+    ctx.fillStyle = "#f3f6fa";
+    ctx.fillRect(0, 0, width, height);
+
+    // رأس التقرير
+    const grad = ctx.createLinearGradient(0, 0, width, 0);
+    grad.addColorStop(0, "#173b67");
+    grad.addColorStop(1, "#2d79b9");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, width, 260);
+
+    ctx.fillStyle = "#ffffff";
+    ctx.textAlign = "right";
+    ctx.direction = "rtl";
+    ctx.font = "bold 42px Tahoma, Arial";
+    ctx.fillText("تقرير تقييم", width - 65, 85);
+    ctx.font = "22px Tahoma, Arial";
+    drawRtlText(ctx, data.directorate || "مديرية التجنيد", width - 65, 122, 620, "22px Tahoma, Arial", "#ffffff");
+    ctx.font = "19px Tahoma, Arial";
+    ctx.fillText(`التاريخ: ${data.date || ""}`, width - 65, 175);
+
+    // دائرة النتيجة
+    ctx.beginPath();
+    ctx.arc(145, 130, 82, 0, Math.PI * 2);
+    ctx.fillStyle = "#ffffff";
+    ctx.fill();
+    ctx.fillStyle = "#173b67";
+    ctx.textAlign = "center";
+    ctx.font = "bold 42px Arial";
+    ctx.fillText(String(data.score), 145, 142);
+    ctx.font = "17px Tahoma, Arial";
+    ctx.fillText("/ 100", 145, 170);
+
+    let y = 305;
+
+    function section(title) {
+      roundedRect(ctx, 50, y, width - 100, 62, 14);
+      ctx.fillStyle = "#ffffff";
+      ctx.fill();
+      ctx.fillStyle = "#173b67";
+      ctx.textAlign = "right";
+      ctx.direction = "rtl";
+      ctx.font = "bold 25px Tahoma, Arial";
+      ctx.fillText(title, width - 78, y + 40);
+      y += 80;
+    }
+
+    function info(label, value, x, yy, w) {
+      ctx.fillStyle = "#ffffff";
+      roundedRect(ctx, x, yy, w, 74, 12);
+      ctx.fill();
+      ctx.fillStyle = "#7a8794";
+      ctx.font = "16px Tahoma, Arial";
+      ctx.textAlign = "right";
+      ctx.fillText(label, x + w - 18, yy + 27);
+      ctx.fillStyle = "#1d2b38";
+      ctx.font = "bold 19px Tahoma, Arial";
+      ctx.fillText(String(value || "غير محدد"), x + w - 18, yy + 55);
+    }
+
+    section("بيانات الزيارة");
+    info("مديرية التجنيد", data.directorate, 50, y, width - 100);
+    y += 92;
+
+    section("تقييم فريق الصيانة");
+    const labels = [
+      ["الالتزام بالوقت والحضور", data.ratings.attendance],
+      ["جودة العمل", data.ratings.quality],
+      ["سرعة الإنجاز", data.ratings.speed],
+      ["التعامل مع موظفي الفرع", data.ratings.behavior]
+    ];
+
+    labels.forEach(([label, value]) => {
+      ctx.fillStyle = "#ffffff";
+      roundedRect(ctx, 50, y, width - 100, 58, 10);
+      ctx.fill();
+      ctx.fillStyle = "#273746";
+      ctx.font = "18px Tahoma, Arial";
+      ctx.textAlign = "right";
+      ctx.fillText(label, width - 75, y + 37);
+      ctx.textAlign = "left";
+      ctx.fillStyle = "#f5b400";
+      ctx.font = "24px Arial";
+      ctx.fillText("★".repeat(Number(value || 0)) + "☆".repeat(5 - Number(value || 0)), 75, y + 39);
+      y += 68;
+    });
+
+    y += 12;
+    section("الحالة التقنية");
+    info("الشبكة", data.network, 620, y, 530);
+    info("الأجهزة", data.devices, 50, y, 530);
+    y += 92;
+    info("الإنترنت", data.internet, 620, y, 530);
+    info("سرعة الإنترنت", data.internetSpeed || "غير محددة", 50, y, 530);
+    y += 100;
+
+    section("النواقص التقنية");
+    if (data.shortages.length) {
+      data.shortages.slice(0, 5).forEach((x, i) => {
+        ctx.fillStyle = "#ffffff";
+        roundedRect(ctx, 50, y, width - 100, 58, 10);
+        ctx.fill();
+        ctx.fillStyle = "#273746";
+        ctx.font = "17px Tahoma, Arial";
+        ctx.textAlign = "right";
+        ctx.fillText(
+          `${i + 1}. ${x.item || "غير محدد"} — الكمية: ${x.qty || 1} — الأولوية: ${x.priority || "منخفض"}`,
+          width - 75, y + 36
+        );
+        y += 67;
+      });
+    } else {
+      ctx.fillStyle = "#ffffff";
+      roundedRect(ctx, 50, y, width - 100, 58, 10);
+      ctx.fill();
+      ctx.fillStyle = "#657482";
+      ctx.font = "17px Tahoma, Arial";
+      ctx.textAlign = "right";
+      ctx.fillText("لا توجد نواقص تقنية مسجلة", width - 75, y + 36);
+      y += 67;
+    }
+
+    y += 15;
+    section("ملاحظات");
+    const notes = [
+      `ملاحظات الفريق: ${data.teamNotes || "لا توجد"}`,
+      `ملاحظات الشبكة: ${data.networkProblem || "لا توجد"}`,
+      `ملاحظات الإنترنت: ${data.internetNotes || "لا توجد"}`
+    ];
+
+    notes.forEach(note => {
+      y += drawRtlText(ctx, note, width - 75, y, width - 150, "17px Tahoma, Arial", "#43515e") + 8;
+    });
+
+    // تذييل
+    ctx.fillStyle = "#173b67";
+    ctx.fillRect(0, height - 85, width, 85);
+    ctx.fillStyle = "#ffffff";
+    ctx.textAlign = "center";
+    ctx.font = "17px Tahoma, Arial";
+    ctx.fillText("نظام تقييم الفروع — تقرير رسمي", width / 2, height - 38);
+
+    return new Promise(resolve => canvas.toBlob(resolve, "image/png", 1));
+  }
+
+  function buildReportText(data) {
+    const ratingText = Object.entries(data.ratings)
+      .map(([key, value]) => `${ratingLabels[key] || key}: ${value}/5`)
+      .join("\\n");
+
+    const shortages = data.shortages.length
+      ? data.shortages.map((x, i) =>
+          `${i+1}. ${x.item} | الكمية: ${x.qty} | الأولوية: ${x.priority} | ${x.note}`
+        ).join("\\n")
+      : "لا توجد نواقص مسجلة";
+
+    return `تقرير تقييم
+
+مديرية التجنيد: ${data.directorate}
+التاريخ: ${data.date}
+
+تقييم فريق الصيانة:
+${ratingText}
+
+التقييم الإجمالي: ${data.score}/100
+
+ملاحظات الفريق:
+${data.teamNotes || "لا توجد"}
+
+الشبكة:
+الحالة: ${data.network || "غير محددة"}
+المشكلة: ${data.networkProblem || "لا توجد"}
+
+الأجهزة:
+الحالة العامة: ${data.devices || "غير محددة"}
+التفاصيل: ${data.deviceNotes || "لا توجد"}
+
+الإنترنت:
+الحالة: ${data.internet || "غير محددة"}
+السرعة: ${data.internetSpeed || "غير محددة"}
+مزود الخدمة: ${data.provider || "غير محدد"}
+الملاحظات: ${data.internetNotes || "لا توجد"}
+
+النواقص التقنية:
+${shortages}`;
+  }
+
+  const ratingLabels = {
+    attendance: "الالتزام بالوقت والحضور",
+    quality: "جودة العمل",
+    speed: "سرعة إنجاز العمل",
+    behavior: "التعامل مع موظفي الفرع"
+  };
+
+  function showMessage(text) {
+    const box = document.getElementById("successMessage");
+    box.textContent = text;
+    box.style.display = "block";
+    setTimeout(() => box.style.display = "none", 6000);
+  }
+
+  function showError(text) {
+    const box = document.getElementById("errorMessage");
+    box.textContent = text;
+    box.style.display = "block";
+    setTimeout(() => box.style.display = "none", 6000);
+  }
+
+  function escapeHtml(value) {
+    return String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  // ===== مديريات التجنيد (قائمة قابلة للتعديل، 9 مديريات) =====
+
+  const DEFAULT_DIRECTORATES = [
+    { name: "مديرية التجنيد الأولى", manager: "" },
+    { name: "مديرية التجنيد الثانية", manager: "" },
+    { name: "مديرية التجنيد الثالثة", manager: "" },
+    { name: "مديرية التجنيد الرابعة", manager: "" },
+    { name: "مديرية التجنيد الخامسة", manager: "" },
+    { name: "مديرية التجنيد السادسة", manager: "" },
+    { name: "مديرية التجنيد السابعة", manager: "" },
+    { name: "مديرية التجنيد الثامنة", manager: "" },
+    { name: "مديرية التجنيد التاسعة", manager: "" },
+  ];
+
+  let directorates = DEFAULT_DIRECTORATES.map((d) => ({ ...d }));
+
+  async function loadDirectorates() {
+    try {
+      const res = await lsGet("directorates");
+      if (res && res.value) {
+        const parsed = JSON.parse(res.value);
+        if (Array.isArray(parsed) && parsed.length) {
+          directorates = parsed;
+          return;
+        }
+      }
+    } catch (e) {
+      // لا توجد قائمة محفوظة بعد
+    }
+    try {
+      await lsSet("directorates", JSON.stringify(directorates));
+    } catch (e) {
+      console.error("تعذر حفظ القائمة الافتراضية للمديريات:", e);
+    }
+  }
+
+  function directorateLabel(d) {
+    const manager = d.manager && d.manager.trim() ? d.manager.trim() : "غير محدد";
+    return `${d.name} — المدير: ${manager}`;
+  }
+
+  function populateDirectorateSelect() {
+    const select = document.getElementById("directorate");
+    const current = select.value;
+    select.innerHTML =
+      `<option value="" disabled${current ? "" : " selected"}>اختر مديرية التجنيد</option>` +
+      directorates
+        .map((d) => {
+          const label = directorateLabel(d);
+          return `<option value="${escapeHtml(label)}">${escapeHtml(label)}</option>`;
+        })
+        .join("");
+    if (current) select.value = current;
+  }
+
+  function toggleDirectorateEditor() {
+    const box = document.getElementById("directorateEditor");
+    const isHidden = box.style.display === "none";
+    box.style.display = isHidden ? "block" : "none";
+    if (isHidden) renderDirectorateEditor();
+  }
+
+  function renderDirectorateEditor() {
+    const container = document.getElementById("directorateEditorList");
+    container.innerHTML = directorates
+      .map(
+        (d, i) => `
+      <div class="directorate-editor-row">
+        <input type="text" value="${escapeHtml(d.name)}" placeholder="اسم المديرية" data-idx="${i}" data-field="name" oninput="updateDirectorateDraft(this)">
+        <input type="text" value="${escapeHtml(d.manager || "")}" placeholder="اسم المدير" data-idx="${i}" data-field="manager" oninput="updateDirectorateDraft(this)">
+      </div>`
+      )
+      .join("");
+  }
+
+  function updateDirectorateDraft(el) {
+    const idx = Number(el.dataset.idx);
+    const field = el.dataset.field;
+    directorates[idx][field] = el.value;
+  }
+
+  async function saveDirectorates() {
+    try {
+      const result = await lsSet("directorates", JSON.stringify(directorates));
+      if (!result) throw new Error("فشل الحفظ");
+      populateDirectorateSelect();
+      toggleDirectorateEditor();
+      showMessage("✅ تم حفظ قائمة مديريات التجنيد.");
+    } catch (e) {
+      console.error("saveDirectorates error:", e);
+      showError("⚠️ تعذر حفظ قائمة المديريات، حاول مرة أخرى.");
+    }
+  }
+
+  // ===== حفظ التقييم في متصفح هذا الجهاز (localStorage) =====
+
+  function generateId() {
+    return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  }
+
+  async function loadEvaluations() {
+    try {
+      const res = await lsGet("evaluations");
+      return res && res.value ? JSON.parse(res.value) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  async function submitToManager() {
+    const form = document.getElementById("evaluationForm");
+    if (!form.reportValidity()) return;
+
+    const data = getFormData();
+    data.id = generateId();
+
+    const btn = document.querySelector('.btn-primary');
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = "جارِ الحفظ...";
+
+    try {
+      const current = await loadEvaluations();
+      current.push(data);
+      const result = await lsSet("evaluations", JSON.stringify(current));
+      if (!result) throw new Error("لم يتم الحفظ");
+
+      localStorage.removeItem("branchEvaluationDraft");
+      showMessage("✅ تم حفظ التقييم على هذا الجهاز. لإيصاله فعليًا لمدير الشركة: افتح تبويب \"لوحة مدير الشركة\" واضغط \"تصدير\" وأرسل الملف له (أو استخدم مشاركة Telegram أدناه).");
+      resetFormAfterSubmit();
+    } catch (e) {
+      console.error("submitToManager error:", e);
+      showError("⚠️ تعذر حفظ التقييم على هذا الجهاز. تأكد أن المتصفح يسمح بالتخزين المحلي وحاول مرة أخرى.");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
+  }
+
+  function resetFormAfterSubmit() {
+    const form = document.getElementById("evaluationForm");
+    form.reset();
+    document.getElementById("date").valueAsDate = new Date();
+    document.getElementById("directorate").value = "";
+
+    Object.keys(ratings).forEach((k) => (ratings[k] = 0));
+    document.querySelectorAll(".stars").forEach((box) => {
+      [...box.children].forEach((s) => s.classList.remove("active"));
+    });
+    document.querySelectorAll(".status").forEach((s) => s.classList.remove("selected"));
+    document.getElementById("shortages").innerHTML = "";
+    calculateScore();
+  }
+
+  // ===== لوحة مدير الشركة =====
+
+  let allEvaluations = [];
+
+  async function showView(view) {
+    document.getElementById("formView").style.display = view === "form" ? "block" : "none";
+    document.getElementById("dashboardView").style.display = view === "dashboard" ? "block" : "none";
+    document.getElementById("tabFormBtn").classList.toggle("active", view === "form");
+    document.getElementById("tabDashboardBtn").classList.toggle("active", view === "dashboard");
+
+    if (view === "dashboard") {
+      document.getElementById("dashList").innerHTML = '<div class="card" style="text-align:center;color:#7a8794;">جارِ التحميل...</div>';
+      allEvaluations = await loadEvaluations();
+      populateBranchFilter();
+      renderDashboard();
+    }
+  }
+
+  function populateBranchFilter() {
+    const select = document.getElementById("filterBranch");
+    const current = select.value;
+    const dirs = [...new Set(allEvaluations.map((e) => e.directorate).filter(Boolean))];
+    select.innerHTML =
+      '<option value="">كل المديريات</option>' +
+      dirs.map((b) => `<option value="${escapeHtml(b)}">${escapeHtml(b)}</option>`).join("");
+    select.value = current;
+  }
+
+  function scoreColor(score) {
+    if (score >= 80) return "#16a34a";
+    if (score >= 50) return "#d97706";
+    return "#dc2626";
+  }
+
+  function statusBadge(label, value) {
+    const colorMap = {
+      "جيدة": "#16a34a",
+      "مستقر": "#16a34a",
+      "تحتاج متابعة": "#d97706",
+      "متقطع": "#d97706",
+      "تحتاج صيانة": "#d97706",
+      "عطل": "#dc2626",
+      "متوقف": "#dc2626",
+      "تحتاج استبدال": "#dc2626",
+    };
+    const color = colorMap[value] || "#7a8794";
+    return `<span class="badge" style="background:${color}1A;color:${color}">${label}: ${escapeHtml(value || "غير محدد")}</span>`;
+  }
+
+  function renderDashboard() {
+    const branchFilter = document.getElementById("filterBranch").value;
+    const search = document.getElementById("searchTeam").value.trim();
+
+    let list = allEvaluations
+      .slice()
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    if (branchFilter) list = list.filter((e) => e.directorate === branchFilter);
+    if (search) {
+      list = list.filter((e) =>
+        [e.teamNotes, e.networkProblem, e.internetNotes, e.generalNotes]
+          .filter(Boolean)
+          .some((t) => t.includes(search))
+      );
+    }
+
+    const statsBox = document.getElementById("dashStats");
+    if (list.length === 0) {
+      statsBox.innerHTML = "";
+    } else {
+      const avgScore = Math.round(list.reduce((s, e) => s + Number(e.score || 0), 0) / list.length);
+      const totalShortages = list.reduce((s, e) => s + (e.shortages ? e.shortages.length : 0), 0);
+      statsBox.innerHTML = `
+        <div class="dash-stat"><div class="dash-stat-value">${list.length}</div><div class="dash-stat-label">عدد التقييمات</div></div>
+        <div class="dash-stat"><div class="dash-stat-value">${avgScore}</div><div class="dash-stat-label">متوسط الدرجة الإجمالية</div></div>
+        <div class="dash-stat"><div class="dash-stat-value">${totalShortages}</div><div class="dash-stat-label">إجمالي النواقص المسجّلة</div></div>
+      `;
+    }
+
+    const listBox = document.getElementById("dashList");
+    if (list.length === 0) {
+      listBox.innerHTML = `<div class="card" style="text-align:center;color:#7a8794;">لا توجد تقييمات مطابقة بعد. ستظهر هنا فور إرسال مديري الفروع لتقييماتهم.</div>`;
+      return;
+    }
+
+    listBox.innerHTML = list
+      .map((e) => {
+        const ratingsHtml = Object.entries(e.ratings || {})
+          .map(([key, value]) => {
+            const label = ratingLabels[key] || key;
+            const stars = "★".repeat(Number(value || 0)) + "☆".repeat(5 - Number(value || 0));
+            return `<div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0;"><span>${escapeHtml(label)}</span><span style="color:#f5b400;letter-spacing:2px;direction:ltr;">${stars}</span></div>`;
+          })
+          .join("");
+
+        const shortagesHtml =
+          e.shortages && e.shortages.length
+            ? `<div style="margin-top:10px;"><div style="font-size:12.5px;font-weight:bold;color:#173b67;margin-bottom:5px;">نواقص تقنية (${e.shortages.length})</div><div style="font-size:13px;color:#43515e;line-height:1.7;">${e.shortages
+                .map((s) => escapeHtml(`${s.item || "-"} × ${s.qty || 1} — أولوية ${s.priority || "منخفض"}${s.note ? " — " + s.note : ""}`))
+                .join("<br>")}</div></div>`
+            : "";
+
+        return `
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;">
+            <div>
+              <div style="font-weight:bold;font-size:16px;">${escapeHtml(e.directorate || "بدون مديرية")}</div>
+              <div style="font-size:12.5px;color:#7a8794;margin-top:3px;">${escapeHtml(e.date || "")}</div>
+            </div>
+            <div style="text-align:center;">
+              <div style="font-size:22px;font-weight:bold;color:${scoreColor(Number(e.score || 0))}">${e.score ?? 0}</div>
+              <div style="font-size:11px;color:#7a8794;">من 100</div>
+            </div>
+          </div>
+
+          <div style="margin-top:12px;">${ratingsHtml}</div>
+
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
+            ${statusBadge("الشبكة", e.network)}
+            ${statusBadge("الأجهزة", e.devices)}
+            ${statusBadge("الإنترنت", e.internet)}
+          </div>
+
+          ${shortagesHtml}
+
+          ${e.teamNotes ? `<div style="margin-top:10px;font-size:13px;color:#43515e;"><strong>ملاحظات الفريق:</strong> ${escapeHtml(e.teamNotes)}</div>` : ""}
+          ${e.networkProblem ? `<div style="margin-top:6px;font-size:13px;color:#43515e;"><strong>ملاحظات الشبكة:</strong> ${escapeHtml(e.networkProblem)}</div>` : ""}
+          ${e.internetNotes ? `<div style="margin-top:6px;font-size:13px;color:#43515e;"><strong>ملاحظات الإنترنت:</strong> ${escapeHtml(e.internetNotes)}</div>` : ""}
+        </div>`;
+      })
+      .join("");
+  }
+
+  async function init() {
+    await loadDirectorates();
+    populateDirectorateSelect();
+    loadDraft();
+  }
+  init();
+</script>
+
+</body>
+</html>
