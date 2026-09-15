@@ -1,4 +1,17 @@
 <?php
+
+
+$submissionId = trim(
+    $_POST['submission_id'] ?? ''
+);
+
+if ($submissionId === '') {
+    respond(
+        false,
+        'رقم التقرير غير موجود.',
+        400
+    );
+}
 declare(strict_types=1);
 
 header('Content-Type: application/json; charset=utf-8');

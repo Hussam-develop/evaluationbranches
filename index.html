@@ -5,6 +5,57 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>نظام تقييم مديريات التجنيد</title>
   <style>
+
+    /* =========================================
+   Telegram Status Box
+   ========================================= */
+
+.telegram-status {
+  display: none;
+  width: 100%;
+  margin-top: 18px;
+  margin-bottom: 12px;
+  padding: 24px 20px;
+  border-radius: 16px;
+  border: 2px solid #d8dee3;
+  background: #ffffff;
+  text-align: center;
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.8;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+}
+
+/* أثناء الإرسال */
+.telegram-status.loading {
+  display: block;
+  color: #02443a;
+  border-color: #b89b5a;
+  background: #fffdf7;
+}
+
+/* بعد النجاح */
+.telegram-status.success {
+  display: block;
+  color: #02443a;
+  border-color: #02443a;
+  background: #f0f8f5;
+}
+
+/* عند الخطأ */
+.telegram-status.error {
+  display: block;
+  color: #a32929;
+  border-color: #d66;
+  background: #fff5f5;
+}
+
+/* الزر بعد نجاح الإرسال */
+.btn-telegram.sent {
+  opacity: 0.65;
+  cursor: not-allowed;
+  pointer-events: none;
+}
     * { box-sizing: border-box; }
     body {
       margin: 0;
@@ -752,7 +803,7 @@ html, body, button, input, select, textarea {
         <div class="score"><span id="totalScore">0</span> / 100</div>
       </div>
 
-      <div class="actions">
+<!--       <div class="actions">
         <button type="button" class="btn btn-secondary" onclick="saveDraft()">💾 حفظ مسودة</button>
       </div>
       <div class="actions" style="margin-top:10px">
@@ -760,7 +811,30 @@ html, body, button, input, select, textarea {
       </div>
 
       <div id="successMessage" class="success"></div>
-      <div id="errorMessage" class="error-msg"></div>
+      <div id="errorMessage" class="error-msg"></div> -->
+
+      <div class="actions">
+  <button type="button" class="btn btn-secondary" onclick="saveDraft()">
+    💾 حفظ مسودة
+  </button>
+</div>
+
+<!-- صندوق حالة Telegram يظهر فوق الزر -->
+<div id="telegramStatus" class="telegram-status" aria-live="polite"></div>
+
+<div class="actions" style="margin-top:10px">
+  <button
+    type="button"
+    id="telegramShareBtn"
+    class="btn btn-telegram btn-full"
+    onclick="shareReport()"
+  >
+    🖼️ مشاركة كصورة عبر Telegram
+  </button>
+</div>
+
+<div id="successMessage" class="success"></div>
+<div id="errorMessage" class="error-msg"></div>
     </section>
 
   </form>
@@ -920,62 +994,264 @@ html, body, button, input, select, textarea {
     }
   }
 
-  async function shareReport() {
-    const form = document.getElementById("evaluationForm");
-    if (!form.reportValidity()) return;
 
-    const btn = document.querySelector(".btn-telegram");
-    const originalText = btn.textContent;
+function createNewTelegramSubmissionId() {
 
-    try {
-      btn.disabled = true;
-      btn.textContent = "⏳ جارِ إرسال الصورة...";
+  let id;
 
-      const data = getFormData();
-      const imageBlob = await createReportImage(data);
+  if (crypto.randomUUID) {
 
-      const formData = new FormData();
-      formData.append(
-        "photo",
-        imageBlob,
-        `تقييم-${safeFileName(data.directorate)}.png`
-      );
+    id = crypto.randomUUID();
 
-      const response = await fetch("api/send-telegram.php", {
-        method: "POST",
-        body: formData
-      });
+  } else {
 
-      const responseText = await response.text();
-      let result;
-
-      try {
-        result = JSON.parse(responseText);
-      } catch (e) {
-        console.error("Server raw response:", responseText);
-        throw new Error(
-          "الخادم لم يُرجع JSON. كود HTTP: " + response.status +
-          (responseText ? " — " + responseText.substring(0, 500) : "")
-        );
-      }
-
-      if (!response.ok || !result.success) {
-        throw new Error(
-          result.message ||
-          ("تعذر إرسال الصورة إلى Telegram. كود HTTP: " + response.status)
-        );
-      }
-
-      showMessage("✅ تم إرسال صورة التقرير مباشرة إلى Telegram.");
-    } catch (error) {
-      console.error("shareReport error:", error);
-      showError("⚠️ " + (error.message || "حدث خطأ أثناء إرسال الصورة."));
-    } finally {
-      btn.disabled = false;
-      btn.textContent = originalText;
-    }
+    id =
+      Date.now().toString(36) +
+      "-" +
+      Math.random().toString(36).substring(2, 15);
   }
 
+  localStorage.setItem(
+    "telegramSubmissionId",
+    id
+  );
+
+  return id;
+}
+async function shareReport() {
+
+  const form = document.getElementById("evaluationForm");
+
+  if (!form.reportValidity()) {
+    return;
+  }
+
+
+  /* =========================================
+     العناصر
+     ========================================= */
+
+  const btn = document.getElementById("telegramShareBtn");
+  const statusBox = document.getElementById("telegramStatus");
+
+
+  /* =========================================
+     منع الضغط المكرر فوراً
+     ========================================= */
+
+  if (btn.dataset.sending === "1") {
+    return;
+  }
+
+  if (btn.dataset.sent === "1") {
+    return;
+  }
+
+
+  /* =========================================
+     قفل الزر فوراً
+     ========================================= */
+
+  btn.dataset.sending = "1";
+  btn.disabled = true;
+  btn.textContent = "⏳ جارِ تجهيز التقرير...";
+
+
+  /* =========================================
+     إظهار مربع الحالة
+     ========================================= */
+
+  statusBox.className = "telegram-status loading";
+  statusBox.style.display = "block";
+  statusBox.textContent =
+    "⏳ جارِ تجهيز التقرير وإرساله إلى Telegram...";
+
+
+  try {
+
+    /* =========================================
+       الحصول على بيانات التقرير
+       ========================================= */
+
+    const data = getFormData();
+
+
+    /* =========================================
+       إنشاء رقم فريد للتقرير
+       ========================================= */
+
+let submissionId =
+  localStorage.getItem("telegramSubmissionId");
+
+if (!submissionId) {
+  submissionId =
+    createNewTelegramSubmissionId();
+}
+
+
+    /* =========================================
+       إنشاء صورة التقرير
+       ========================================= */
+
+    statusBox.textContent =
+      "🖼️ جارِ إنشاء صورة التقرير...";
+
+    const imageBlob = await createReportImage(data);
+
+
+    /* =========================================
+       تجهيز الطلب
+       ========================================= */
+
+    const formData = new FormData();
+
+    formData.append(
+      "photo",
+      imageBlob,
+      `تقييم-${safeFileName(data.directorate)}.png`
+    );
+
+    formData.append(
+      "submission_id",
+      submissionId
+    );
+
+
+    /* =========================================
+       حالة الإرسال
+       ========================================= */
+
+    btn.textContent = "📤 جارِ الإرسال...";
+
+    statusBox.textContent =
+      "📤 جارِ إرسال التقرير إلى Telegram...";
+
+
+    /* =========================================
+       إرسال إلى PHP
+       ========================================= */
+
+    const response = await fetch(
+      "api/send-telegram.php",
+      {
+        method: "POST",
+        body: formData
+      }
+    );
+
+
+    /* =========================================
+       قراءة استجابة السيرفر
+       ========================================= */
+
+    const responseText = await response.text();
+
+    let result;
+
+    try {
+
+      result = JSON.parse(responseText);
+
+    } catch (e) {
+
+      console.error(
+        "Server raw response:",
+        responseText
+      );
+
+      throw new Error(
+        "الخادم لم يُرجع استجابة صحيحة."
+      );
+    }
+
+
+    /* =========================================
+       فشل الإرسال
+       ========================================= */
+
+    if (!response.ok || !result.success) {
+
+      throw new Error(
+        result.message ||
+        "تعذر إرسال التقرير إلى Telegram."
+      );
+    }
+
+
+    /* =========================================
+       نجاح الإرسال
+       ========================================= */
+
+    btn.dataset.sent = "1";
+    btn.dataset.sending = "0";
+
+    btn.disabled = true;
+
+    btn.textContent =
+      "✅ تم إرسال التقرير";
+
+    btn.classList.add("sent");
+
+
+    statusBox.className =
+      "telegram-status success";
+
+    statusBox.style.display =
+      "block";
+
+    statusBox.textContent =
+      "✅ تم إرسال التقرير بنجاح إلى Telegram. لا يمكن إرسال نفس التقرير مرة أخرى.";
+
+
+    /* =========================================
+       حفظ حالة النجاح
+       ========================================= */
+
+    localStorage.setItem(
+      "telegramSent_" + submissionId,
+      "1"
+    );
+
+
+    showMessage(
+      "✅ تم إرسال صورة التقرير مباشرة إلى Telegram."
+    );
+
+
+  } catch (error) {
+
+    console.error(
+      "shareReport error:",
+      error
+    );
+
+
+    /* =========================================
+       في حالة الخطأ فقط نسمح بالمحاولة
+       ========================================= */
+
+    btn.dataset.sending = "0";
+
+    btn.disabled = false;
+
+    btn.textContent =
+      "🔄 إعادة إرسال التقرير";
+
+
+    statusBox.className =
+      "telegram-status error";
+
+    statusBox.style.display =
+      "block";
+
+    statusBox.textContent =
+      "⚠️ " +
+      (
+        error.message ||
+        "حدث خطأ أثناء إرسال التقرير."
+      );
+  }
+}
   function safeFileName(name) {
     return String(name || "الفرع").replace(/[\\/:*?"<>|]/g, "-").trim();
   }
